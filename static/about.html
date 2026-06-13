@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>About — AI Resume Screener</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1a202c}
+
+    nav{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}
+    .nav-inner{max-width:1100px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{font-size:1.25rem;font-weight:800;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links{display:flex;gap:8px}
+    .nav-links a{padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.9rem;color:#4a5568;transition:all .2s}
+    .nav-links a:hover{background:#f0f4f8;color:#2d3748}
+    .nav-links a.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+    .btn-logout{padding:8px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-weight:600;font-size:.85rem;color:#e53e3e;cursor:pointer;transition:all .2s}
+    .btn-logout:hover{background:#fff5f5;border-color:#fc8181}
+
+    .page-header{background:linear-gradient(135deg,#667eea,#764ba2);padding:48px 24px 40px;text-align:center;color:#fff}
+    .page-header h1{font-size:2rem;font-weight:800;margin-bottom:8px}
+    .page-header p{opacity:.85;font-size:.95rem}
+
+    .container{max-width:860px;margin:0 auto;padding:40px 16px}
+
+    .card{background:#fff;border-radius:14px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:24px}
+    .card h2{font-size:1.2rem;font-weight:700;color:#2d3748;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+    .card p{color:#4a5568;line-height:1.8;font-size:.92rem;margin-bottom:12px}
+    .card p:last-child{margin-bottom:0}
+
+    .tech-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:8px}
+    .tech-item{background:#f7fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;text-align:center}
+    .tech-icon{font-size:1.8rem;margin-bottom:8px}
+    .tech-name{font-weight:700;font-size:.9rem;color:#2d3748}
+    .tech-desc{font-size:.78rem;color:#718096;margin-top:4px}
+
+    .scoring-table{width:100%;border-collapse:collapse;margin-top:8px}
+    .scoring-table th{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:10px 16px;text-align:left;font-size:.85rem}
+    .scoring-table td{padding:10px 16px;border-bottom:1px solid #e2e8f0;font-size:.88rem;color:#4a5568}
+    .scoring-table tr:last-child td{border:none}
+    .scoring-table tr:hover td{background:#f7fafc}
+    .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:.78rem;font-weight:700}
+    .badge.high{background:#c6f6d5;color:#276749}
+    .badge.med{background:#bee3f8;color:#2c5282}
+    .badge.low{background:#feebc8;color:#744210}
+
+    .verdict-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+    .verdict-box{border-radius:10px;padding:16px;text-align:center}
+    .verdict-box.selected{background:#f0fff4;border:2px solid #68d391}
+    .verdict-box.consider{background:#fffff0;border:2px solid #f6e05e}
+    .verdict-box.reject{background:#fff5f5;border:2px solid #fc8181}
+    .verdict-box .icon{font-size:1.8rem;margin-bottom:6px}
+    .verdict-box .label{font-weight:700;font-size:.9rem}
+    .verdict-box .range{font-size:.8rem;color:#718096;margin-top:4px}
+
+    .cta-card{background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;padding:36px;text-align:center;color:#fff}
+    .cta-card h2{font-size:1.5rem;font-weight:800;margin-bottom:10px}
+    .cta-card p{opacity:.9;margin-bottom:24px;font-size:.95rem}
+    .btn-white{display:inline-block;padding:12px 32px;background:#fff;color:#667eea;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s}
+    .btn-white:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.15)}
+
+    footer{background:#1a202c;color:#a0aec0;text-align:center;padding:28px 24px;font-size:.85rem}
+    footer span{color:#667eea;font-weight:600}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🤖 ResumeAI</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/screen">Screen</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/portfolio">Portfolio</a>
+      <a href="/about" class="active">About</a>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <h1>ℹ️ About ResumeAI</h1>
+  <p>Everything you need to know about how the tool works</p>
+</div>
+
+<div class="container">
+
+  <!-- WHAT IS IT -->
+  <div class="card">
+    <h2>🤖 What is ResumeAI?</h2>
+    <p>ResumeAI is an AI-powered recruitment screening tool that automatically analyses candidate resumes against job descriptions. It replaces the manual, time-consuming process of reading each resume by instantly evaluating candidates across 10 key dimensions.</p>
+    <p>Built for recruiters, HR teams, and hiring managers who want fast, consistent, and unbiased first-pass screening — without spending hours on every application.</p>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="card">
+    <h2>⚙️ How It Works</h2>
+    <p>You upload a resume (PDF, DOCX, or TXT) and paste a job description. The system extracts text from the file, combines it with the job description, and sends it to a large language model for deep analysis.</p>
+    <p>The AI evaluates technical skills, experience, education, certifications, projects, and more — then returns a structured JSON response that is displayed as a clean, readable report with a final eligibility verdict.</p>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="card">
+    <h2>🛠️ Tech Stack</h2>
+    <div class="tech-grid">
+      <div class="tech-item"><div class="tech-icon">⚡</div><div class="tech-name">FastAPI</div><div class="tech-desc">Python backend & REST API</div></div>
+      <div class="tech-item"><div class="tech-icon">🧠</div><div class="tech-name">LLaMA 3.3 70B</div><div class="tech-desc">AI screening via Groq</div></div>
+      <div class="tech-item"><div class="tech-icon">🎨</div><div class="tech-name">HTML / CSS / JS</div><div class="tech-desc">Pure frontend, no framework</div></div>
+      <div class="tech-item"><div class="tech-icon">📄</div><div class="tech-name">pypdf + python-docx</div><div class="tech-desc">Resume text extraction</div></div>
+      <div class="tech-item"><div class="tech-icon">✅</div><div class="tech-name">Pydantic</div><div class="tech-desc">Data validation & typing</div></div>
+      <div class="tech-item"><div class="tech-icon">🐍</div><div class="tech-name">Python 3.9+</div><div class="tech-desc">Core language</div></div>
+    </div>
+  </div>
+
+  <!-- SCORING -->
+  <div class="card">
+    <h2>📊 Scoring Breakdown</h2>
+    <p>Every resume is scored out of 100 using a weighted rubric that mirrors industry ATS standards:</p>
+    <table class="scoring-table">
+      <tr><th>Criteria</th><th>Weight</th><th>Priority</th></tr>
+      <tr><td>Technical Skills Match</td><td>40%</td><td><span class="badge high">High</span></td></tr>
+      <tr><td>Relevant Experience</td><td>25%</td><td><span class="badge high">High</span></td></tr>
+      <tr><td>Projects Assessment</td><td>15%</td><td><span class="badge med">Medium</span></td></tr>
+      <tr><td>Education</td><td>10%</td><td><span class="badge med">Medium</span></td></tr>
+      <tr><td>Certifications</td><td>5%</td><td><span class="badge low">Low</span></td></tr>
+      <tr><td>Soft Skills</td><td>5%</td><td><span class="badge low">Low</span></td></tr>
+    </table>
+  </div>
+
+  <!-- VERDICT -->
+  <div class="card">
+    <h2>🏆 Verdict System</h2>
+    <p>Based on the final score, the candidate receives one of three verdicts:</p>
+    <div class="verdict-row">
+      <div class="verdict-box selected"><div class="icon">✅</div><div class="label">Selected</div><div class="range">Score ≥ 80</div></div>
+      <div class="verdict-box consider"><div class="icon">🟡</div><div class="label">Consider</div><div class="range">Score 60–79</div></div>
+      <div class="verdict-box reject"><div class="icon">❌</div><div class="label">Reject</div><div class="range">Score &lt; 60</div></div>
+    </div>
+  </div>
+
+  <!-- SUPPORTED FORMATS -->
+  <div class="card">
+    <h2>📁 Supported File Formats</h2>
+    <p><strong>PDF</strong> — Most common resume format. Text is extracted using pypdf. Works best with text-based PDFs (not scanned images).</p>
+    <p><strong>DOCX</strong> — Microsoft Word format. Full paragraph extraction using python-docx.</p>
+    <p><strong>TXT</strong> — Plain text resumes. Directly read with UTF-8 encoding.</p>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-card">
+    <h2>Ready to Try It?</h2>
+    <p>Upload a resume and job description to get your first screening result in under 5 seconds.</p>
+    <a href="/screen" class="btn-white">🔍 Screen a Resume →</a>
+  </div>
+
+</div>
+
+<script src="/static/auth-guard.js"></script>
+<footer>
+  <p>Built with ❤️ using <span>FastAPI</span> + <span>Groq (LLaMA 3.3 70B)</span> + <span>Python</span></p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Portfolio Analysis — AI Resume Screener</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1a202c}
+
+    nav{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}
+    .nav-inner{max-width:1100px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{font-size:1.25rem;font-weight:800;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links{display:flex;gap:8px;flex-wrap:wrap}
+    .nav-links a{padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.9rem;color:#4a5568;transition:all .2s}
+    .nav-links a:hover{background:#f0f4f8;color:#2d3748}
+    .nav-links a.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+    .btn-logout{padding:8px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-weight:600;font-size:.85rem;color:#e53e3e;cursor:pointer;transition:all .2s}
+    .btn-logout:hover{background:#fff5f5;border-color:#fc8181}
+
+    .page-header{background:linear-gradient(135deg,#667eea,#764ba2);padding:48px 24px 40px;text-align:center;color:#fff}
+    .page-header h1{font-size:2rem;font-weight:800;margin-bottom:8px}
+    .page-header p{opacity:.85;font-size:.95rem}
+
+    .container{max-width:900px;margin:0 auto;padding:32px 16px}
+
+    .card{background:#fff;border-radius:14px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:24px}
+
+    /* URL Input */
+    .url-input-wrap{display:flex;gap:10px}
+    .url-input{flex:1;padding:13px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.95rem;font-family:inherit;color:#2d3748;transition:border .2s}
+    .url-input:focus{outline:none;border-color:#667eea}
+    .btn{padding:13px 28px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;white-space:nowrap}
+    .btn:hover:not(:disabled){opacity:.92;transform:translateY(-1px)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    .url-hints{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .url-hint{padding:4px 12px;background:#f0f4f8;border:1px solid #e2e8f0;border-radius:20px;font-size:.78rem;color:#667eea;cursor:pointer;font-weight:600;transition:all .2s}
+    .url-hint:hover{background:#667eea;color:#fff;border-color:#667eea}
+
+    .error-box{background:#fff5f5;border:1.5px solid #fc8181;border-radius:10px;padding:14px 16px;color:#9b2c2c;font-size:.88rem;display:none;margin-bottom:16px}
+
+    #spinner{display:none;text-align:center;padding:50px}
+    .spin{width:44px;height:44px;border:4px solid #e2e8f0;border-top-color:#667eea;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    #result{display:none}
+
+    /* Verdict banner */
+    .verdict-banner{border-radius:12px;padding:22px 28px;display:flex;align-items:center;gap:18px;margin-bottom:20px}
+    .verdict-banner.strong{background:#f0fff4;border:2px solid #68d391}
+    .verdict-banner.good{background:#ebf8ff;border:2px solid #63b3ed}
+    .verdict-banner.average{background:#fffff0;border:2px solid #f6e05e}
+    .verdict-banner.weak{background:#fff5f5;border:2px solid #fc8181}
+    .verdict-icon{font-size:2.6rem}
+    .verdict-title{font-size:1.4rem;font-weight:800}
+    .verdict-banner.strong .verdict-title{color:#276749}
+    .verdict-banner.good   .verdict-title{color:#2c5282}
+    .verdict-banner.average .verdict-title{color:#744210}
+    .verdict-banner.weak   .verdict-title{color:#9b2c2c}
+    .verdict-sub{color:#4a5568;font-size:.88rem;margin-top:3px;line-height:1.5}
+
+    /* Score row */
+    .score-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:20px}
+    .score-box{background:#fff;border-radius:12px;padding:16px 12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+    .score-box.b-purple{border-top:4px solid #667eea}
+    .score-box.b-green{border-top:4px solid #48bb78}
+    .score-box.b-orange{border-top:4px solid #ed8936}
+    .score-box.b-blue{border-top:4px solid #4299e1}
+    .score-num{font-size:1.9rem;font-weight:800;color:#2d3748}
+    .score-label{font-size:.72rem;color:#718096;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+
+    /* Section */
+    .section-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#a0aec0;margin-bottom:12px}
+
+    /* Tags */
+    .tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+    .tag{padding:4px 13px;border-radius:20px;font-size:.8rem;font-weight:600}
+    .tag.purple{background:#e9d8fd;color:#553c9a}
+    .tag.blue{background:#bee3f8;color:#2c5282}
+    .tag.green{background:#c6f6d5;color:#276749}
+    .tag.orange{background:#feebc8;color:#744210}
+    .tag.red{background:#fed7d7;color:#9b2c2c}
+
+    /* Project cards */
+    .project-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:600px){.project-grid{grid-template-columns:1fr}}
+    .project-card{background:#f7fafc;border-radius:12px;padding:18px;border:1.5px solid #e2e8f0;transition:box-shadow .2s}
+    .project-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+    .project-name{font-weight:700;font-size:.95rem;color:#2d3748;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+    .project-desc{font-size:.82rem;color:#718096;line-height:1.55;margin-bottom:10px}
+    .project-techs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+    .project-highlight{font-size:.78rem;color:#4a5568;padding:3px 0;display:flex;gap:6px}
+    .project-highlight::before{content:"✦";color:#667eea;flex-shrink:0}
+
+    /* Radar chart */
+    .chart-wrap{position:relative;height:260px}
+
+    /* Two column */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+    @media(max-width:560px){.two-col{grid-template-columns:1fr}}
+
+    /* SW list */
+    .sw-item{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid #f7f7f7;font-size:.85rem;color:#4a5568;line-height:1.45}
+    .sw-item:last-child{border:none}
+
+    /* Info rows */
+    .info-row{display:flex;justify-content:space-between;align-items:flex-start;font-size:.85rem;padding:7px 0;border-bottom:1px solid #f0f0f0;gap:12px}
+    .info-row:last-child{border:none}
+    .info-row span:first-child{color:#718096;white-space:nowrap}
+    .info-row span:last-child{font-weight:600;color:#2d3748;text-align:right}
+
+    .verdict-box{background:#ebf8ff;border-left:4px solid #63b3ed;border-radius:6px;padding:14px 16px;font-size:.9rem;line-height:1.65;color:#2c5282;font-style:italic}
+
+    .bulk-warning{border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:flex-start;gap:14px}
+    .bulk-warning.detected{background:#fff8e1;border:2px solid #f6c90e}
+    .bulk-warning.clean{background:#f0fff4;border:2px solid #68d391}
+    .bulk-warning-icon{font-size:1.8rem;flex-shrink:0}
+    .bulk-warning-title{font-weight:800;font-size:.95rem;margin-bottom:4px}
+    .bulk-warning.detected .bulk-warning-title{color:#744210}
+    .bulk-warning.clean .bulk-warning-title{color:#276749}
+    .bulk-warning-note{font-size:.85rem;line-height:1.5}
+    .bulk-warning.detected .bulk-warning-note{color:#7b4f12}
+    .bulk-warning.clean .bulk-warning-note{color:#2f855a}
+
+    footer{background:#1a202c;color:#a0aec0;text-align:center;padding:24px;font-size:.85rem;margin-top:32px}
+    footer span{color:#667eea;font-weight:600}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🤖 ResumeAI</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/screen">Screen</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/portfolio" class="active">Portfolio</a>
+      <a href="/about">About</a>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <h1>🗂️ Portfolio Analyser</h1>
+  <p>Paste a GitHub, personal website, or any portfolio URL for an instant AI deep-dive</p>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <label style="display:block;font-weight:600;margin-bottom:10px;color:#2d3748">🔗 Portfolio URL</label>
+    <div class="url-input-wrap">
+      <input class="url-input" id="urlInput" type="url" placeholder="https://github.com/username  or  https://myportfolio.dev"/>
+      <button class="btn" id="analyseBtn" onclick="submitPortfolio()">🔍 Analyse</button>
+    </div>
+    <div class="url-hints">
+      <span class="url-hint" onclick="setExample('https://github.com/')">🐙 GitHub Profile</span>
+      <span class="url-hint" onclick="setExample('https://github.com/username/repo')">📦 GitHub Repo</span>
+      <span class="url-hint" onclick="setExample('https://')">🌐 Personal Site</span>
+    </div>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div id="spinner">
+    <div class="spin"></div>
+    <p style="color:#718096;font-size:.9rem">Fetching and analysing portfolio with AI...</p>
+  </div>
+
+  <div id="result">
+
+    <!-- Bulk Upload Warning -->
+    <div class="bulk-warning" id="bulkWarning">
+      <div class="bulk-warning-icon" id="bulkWarningIcon"></div>
+      <div>
+        <div class="bulk-warning-title" id="bulkWarningTitle"></div>
+        <div class="bulk-warning-note" id="bulkWarningNote"></div>
+      </div>
+    </div>
+
+    <!-- Verdict -->
+    <div class="verdict-banner" id="verdictBanner">
+      <div class="verdict-icon" id="verdictIcon"></div>
+      <div>
+        <div class="verdict-title" id="verdictTitle"></div>
+        <div class="verdict-sub" id="verdictSub"></div>
+      </div>
+    </div>
+
+    <!-- Score row -->
+    <div class="score-row">
+      <div class="score-box b-purple"><div class="score-num" id="sOverall">—</div><div class="score-label">Overall Quality</div></div>
+      <div class="score-box b-green"><div class="score-num" id="sTech">—</div><div class="score-label">Tech Depth</div></div>
+      <div class="score-box b-orange"><div class="score-num" id="sCreativity">—</div><div class="score-label">Creativity</div></div>
+      <div class="score-box b-blue"><div class="score-num" id="sConsistency">—</div><div class="score-label">Consistency</div></div>
+    </div>
+
+    <!-- Overview + Radar -->
+    <div class="two-col">
+      <div class="card">
+        <div class="section-title">📋 Overview</div>
+        <div id="overviewRows"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">🕸️ Score Radar</div>
+        <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Languages + Frameworks -->
+    <div class="two-col">
+      <div class="card">
+        <div class="section-title">💻 Primary Languages</div>
+        <div class="tags" id="langTags"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">🛠️ Frameworks &amp; Tools</div>
+        <div class="tags" id="frameworkTags"></div>
+      </div>
+    </div>
+
+    <!-- Projects -->
+    <div class="card">
+      <div class="section-title">🏗️ Projects Analysed</div>
+      <div class="project-grid" id="projectGrid"></div>
+    </div>
+
+    <!-- Strengths + Improvements -->
+    <div class="two-col">
+      <div class="card">
+        <div class="section-title">💪 Strengths</div>
+        <div id="strengthsList"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">📈 Areas for Improvement</div>
+        <div id="improvementsList"></div>
+      </div>
+    </div>
+
+    <!-- Hiring Verdict -->
+    <div class="card">
+      <div class="section-title">🧠 Hiring Verdict</div>
+      <div class="verdict-box" id="hiringVerdict"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer><p>Built with ❤️ using <span>FastAPI</span> + <span>Groq (LLaMA 3.3 70B)</span> + <span>Python</span></p></footer>
+
+<script>
+const API = window.location.origin;
+
+function setExample(url){ document.getElementById('urlInput').value = url; document.getElementById('urlInput').focus(); }
+function showError(msg){ const b=document.getElementById('errorBox'); b.textContent='⚠️ '+msg; b.style.display='block'; }
+function hideError(){ document.getElementById('errorBox').style.display='none'; }
+
+async function submitPortfolio(){
+  hideError();
+  const url = document.getElementById('urlInput').value.trim();
+  if(!url){ showError('Please enter a portfolio URL.'); return; }
+  if(!url.startsWith('http')){ showError('URL must start with http:// or https://'); return; }
+
+  document.getElementById('analyseBtn').disabled = true;
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('spinner').style.display = 'block';
+
+  try {
+    const res = await fetch(`${API}/api/portfolio`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+    if(!res.ok){ showError(data.detail?.error || data.detail || 'Something went wrong.'); return; }
+    renderResult(data);
+  } catch(e) {
+    showError('Could not reach the server.');
+  } finally {
+    document.getElementById('analyseBtn').disabled = false;
+    document.getElementById('spinner').style.display = 'none';
+  }
+}
+
+const VERDICT_CFG = {
+  strong:  { cls:'strong',  icon:'🏆', label:'STRONG PORTFOLIO' },
+  good:    { cls:'good',    icon:'✅', label:'GOOD PORTFOLIO'   },
+  average: { cls:'average', icon:'🟡', label:'AVERAGE PORTFOLIO'},
+  weak:    { cls:'weak',    icon:'⚠️', label:'WEAK PORTFOLIO'  }
+};
+
+let radarChartInst = null;
+
+function renderResult(d){
+  const rec = (d.recommendation||'average').toLowerCase();
+  const cfg = VERDICT_CFG[rec] || VERDICT_CFG.average;
+
+  // Verdict banner
+  const banner = document.getElementById('verdictBanner');
+  banner.className = 'verdict-banner ' + cfg.cls;
+  document.getElementById('verdictIcon').textContent  = cfg.icon;
+  document.getElementById('verdictTitle').textContent = cfg.label;
+  document.getElementById('verdictSub').textContent   = d.hiring_verdict || '';
+
+  // Scores
+  document.getElementById('sOverall').textContent    = d.overall_quality_score   + '%';
+  document.getElementById('sTech').textContent        = d.technical_depth_score   + '%';
+  document.getElementById('sCreativity').textContent  = d.creativity_score        + '%';
+  document.getElementById('sConsistency').textContent = d.consistency_score       + '%';
+
+  // Overview rows
+  const urlLink = `<a href="${d.portfolio_url}" target="_blank" rel="noopener" style="color:#667eea;word-break:break-all">${d.portfolio_url}</a>`;
+  document.getElementById('overviewRows').innerHTML = [
+    ['URL',       urlLink],
+    ['Owner',     d.owner_name || '—'],
+    ['Type',      d.type       || '—'],
+    ['Projects',  d.total_projects_noted || 0],
+    ['Summary',   d.summary    || '—'],
+  ].map(([k,v])=>`<div class="info-row"><span>${k}</span><span>${v}</span></div>`).join('');
+
+  // Radar chart
+  if(radarChartInst) radarChartInst.destroy();
+  radarChartInst = new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels: ['Quality','Tech Depth','Creativity','Consistency'],
+      datasets:[{
+        data: [d.overall_quality_score, d.technical_depth_score, d.creativity_score, d.consistency_score],
+        backgroundColor:'rgba(102,126,234,.15)',
+        borderColor:'#667eea',
+        pointBackgroundColor:'#764ba2',
+        pointRadius:5,
+        borderWidth:2
+      }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false }},
+      scales:{ r:{ min:0, max:100, ticks:{ display:false }, grid:{ color:'#e2e8f0' },
+        pointLabels:{ font:{ size:12 }, color:'#4a5568' }}}
+    }
+  });
+
+  // Language tags
+  const lt = document.getElementById('langTags'); lt.innerHTML='';
+  (d.primary_languages||[]).forEach(l=>lt.innerHTML+=`<span class="tag purple">${l}</span>`);
+  if(!lt.innerHTML) lt.innerHTML='<span style="color:#a0aec0;font-size:.83rem">None identified</span>';
+
+  // Framework tags
+  const ft = document.getElementById('frameworkTags'); ft.innerHTML='';
+  (d.frameworks_and_tools||[]).forEach(f=>ft.innerHTML+=`<span class="tag blue">${f}</span>`);
+  if(!ft.innerHTML) ft.innerHTML='<span style="color:#a0aec0;font-size:.83rem">None identified</span>';
+
+  // Projects
+  const pg = document.getElementById('projectGrid'); pg.innerHTML='';
+  const projects = d.projects||[];
+  if(projects.length){
+    projects.forEach(p=>{
+      const techs = (p.technologies||[]).map(t=>`<span class="tag green" style="font-size:.72rem">${t}</span>`).join('');
+      const highlights = (p.highlights||[]).map(h=>`<div class="project-highlight">${h}</div>`).join('');
+      pg.innerHTML += `
+        <div class="project-card">
+          <div class="project-name">🔧 ${p.name}</div>
+          <div class="project-desc">${p.description}</div>
+          <div class="project-techs">${techs}</div>
+          ${highlights}
+        </div>`;
+    });
+  } else {
+    pg.innerHTML='<p style="color:#a0aec0;font-size:.88rem">No projects identified.</p>';
+  }
+
+  // Strengths
+  const sl = document.getElementById('strengthsList'); sl.innerHTML='';
+  (d.strengths||[]).forEach(s=>sl.innerHTML+=`<div class="sw-item"><span>💚</span><span>${s}</span></div>`);
+  if(!sl.innerHTML) sl.innerHTML='<div class="sw-item"><span style="color:#a0aec0">None noted</span></div>';
+
+  // Improvements
+  const il = document.getElementById('improvementsList'); il.innerHTML='';
+  (d.areas_for_improvement||[]).forEach(i=>il.innerHTML+=`<div class="sw-item"><span>📌</span><span>${i}</span></div>`);
+  if(!il.innerHTML) il.innerHTML='<div class="sw-item"><span style="color:#a0aec0">None noted</span></div>';
+
+  // Hiring verdict
+  document.getElementById('hiringVerdict').textContent = d.hiring_verdict || '—';
+
+  // Bulk upload warning
+  const bw = document.getElementById('bulkWarning');
+  const isGithubProfile = /^https?:\/\/github\.com\/[^\/]+\/?$/.test(d.portfolio_url || '');
+  if(!isGithubProfile){
+    bw.className = 'bulk-warning clean';
+    document.getElementById('bulkWarningIcon').textContent  = 'ℹ️';
+    document.getElementById('bulkWarningTitle').textContent = 'Bulk Upload Check — N/A';
+    document.getElementById('bulkWarningNote').textContent  = 'This check only applies to GitHub profile URLs.';
+  } else if(d.bulk_upload_detected){
+    bw.className = 'bulk-warning detected';
+    document.getElementById('bulkWarningIcon').textContent  = '⚠️';
+    document.getElementById('bulkWarningTitle').textContent = '🚨 Bulk Upload Detected';
+    document.getElementById('bulkWarningNote').textContent  = d.bulk_upload_note || 'All repositories appear to have been uploaded in bulk.';
+  } else {
+    bw.className = 'bulk-warning clean';
+    document.getElementById('bulkWarningIcon').textContent  = '✅';
+    document.getElementById('bulkWarningTitle').textContent = 'No Bulk Upload Detected';
+    document.getElementById('bulkWarningNote').textContent  = d.bulk_upload_note || 'Repositories appear to have been created organically over time.';
+  }
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result').scrollIntoView({ behavior:'smooth' });
+}
+
+// Allow Enter key to trigger analysis
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter') submitPortfolio();
+});
+</script>
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Screen Resume — AI Resume Screener</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1a202c}
+
+    nav{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}
+    .nav-inner{max-width:1100px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{font-size:1.25rem;font-weight:800;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links{display:flex;gap:8px}
+    .nav-links a{padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.9rem;color:#4a5568;transition:all .2s}
+    .nav-links a:hover{background:#f0f4f8;color:#2d3748}
+    .nav-links a.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+    .btn-logout{padding:8px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-weight:600;font-size:.85rem;color:#e53e3e;cursor:pointer;transition:all .2s}
+    .btn-logout:hover{background:#fff5f5;border-color:#fc8181}
+
+    .page-header{background:linear-gradient(135deg,#667eea,#764ba2);padding:48px 24px 40px;text-align:center;color:#fff}
+    .page-header h1{font-size:2rem;font-weight:800;margin-bottom:8px}
+    .page-header p{opacity:.85;font-size:.95rem}
+
+    .container{max-width:860px;margin:0 auto;padding:32px 16px}
+
+    .card{background:#fff;border-radius:14px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.07);margin-bottom:24px}
+
+    label{display:block;font-weight:600;margin-bottom:8px;color:#2d3748;font-size:.9rem}
+
+    .upload-area{border:2px dashed #cbd5e0;border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;background:#f7fafc}
+    .upload-area:hover,.upload-area.dragover{border-color:#667eea;background:#ebf4ff}
+    .upload-area input{display:none}
+    .upload-icon{font-size:2.5rem;margin-bottom:8px}
+    .upload-text{color:#4a5568;font-size:.92rem}
+    .upload-text span{color:#667eea;font-weight:600}
+    .file-selected{margin-top:10px;color:#38a169;font-weight:600;font-size:.88rem}
+
+    textarea{width:100%;padding:12px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.9rem;resize:vertical;min-height:160px;font-family:inherit;color:#2d3748;transition:border .2s;line-height:1.5}
+    textarea:focus{outline:none;border-color:#667eea}
+
+    .btn{width:100%;padding:14px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:.3px}
+    .btn:hover:not(:disabled){opacity:.92;transform:translateY(-1px)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    #result{display:none}
+
+    .verdict-banner{border-radius:12px;padding:24px 28px;display:flex;align-items:center;gap:18px;margin-bottom:20px}
+    .verdict-banner.selected{background:#f0fff4;border:2px solid #68d391}
+    .verdict-banner.consider{background:#fffff0;border:2px solid #f6e05e}
+    .verdict-banner.reject{background:#fff5f5;border:2px solid #fc8181}
+    .verdict-icon{font-size:2.6rem}
+    .verdict-title{font-size:1.5rem;font-weight:800}
+    .verdict-banner.selected .verdict-title{color:#276749}
+    .verdict-banner.consider .verdict-title{color:#744210}
+    .verdict-banner.reject .verdict-title{color:#9b2c2c}
+    .verdict-sub{color:#4a5568;font-size:.88rem;margin-top:3px}
+
+    .score-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:20px}
+    .score-box{background:#f7fafc;border-radius:10px;padding:16px 12px;text-align:center;border:1px solid #e2e8f0}
+    .score-num{font-size:1.8rem;font-weight:800;color:#667eea}
+    .score-label{font-size:.75rem;color:#718096;margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+
+    .section-title{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#a0aec0;margin-bottom:10px}
+    .tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+    .tag{padding:4px 12px;border-radius:20px;font-size:.8rem;font-weight:600}
+    .tag.green{background:#c6f6d5;color:#276749}
+    .tag.red{background:#fed7d7;color:#9b2c2c}
+    .tag.orange{background:#feebc8;color:#744210}
+    .skill-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
+    .skill-table th{background:#f7fafc;color:#718096;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:7px 10px;text-align:left;border-bottom:2px solid #e2e8f0;font-size:.72rem}
+    .skill-table td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top;color:#4a5568}
+    .skill-table tr:last-child td{border:none}
+    .skill-table tr:hover td{background:#fafafa}
+    .badge-found{display:inline-block;padding:2px 9px;border-radius:10px;font-size:.72rem;font-weight:700;background:#c6f6d5;color:#276749}
+    .badge-missing{display:inline-block;padding:2px 9px;border-radius:10px;font-size:.72rem;font-weight:700;background:#fed7d7;color:#9b2c2c}
+    .badge-mandatory{display:inline-block;padding:2px 7px;border-radius:8px;font-size:.68rem;font-weight:700;background:#feebc8;color:#744210;margin-left:4px}
+    .badge-preferred{display:inline-block;padding:2px 7px;border-radius:8px;font-size:.68rem;font-weight:700;background:#e9d8fd;color:#553c9a;margin-left:4px}
+    .context-text{color:#718096;font-style:italic;font-size:.78rem}
+
+    .list-items{list-style:none}
+    .list-items li{padding:7px 0;font-size:.88rem;display:flex;gap:8px;border-bottom:1px solid #f0f0f0;line-height:1.45}
+    .list-items li:last-child{border:none}
+
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:560px){.two-col{grid-template-columns:1fr}}
+
+    .reasoning-box{background:#ebf8ff;border-left:4px solid #63b3ed;border-radius:6px;padding:14px 16px;font-size:.88rem;line-height:1.6;color:#2c5282}
+
+    /* Interview Questions */
+    .iq-header{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+    .iq-header h2{font-size:1.15rem;font-weight:800;color:#2d3748}
+    .iq-header .badge{padding:4px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:20px;font-size:.75rem;font-weight:700}
+    .iq-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+    .iq-tab{padding:8px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;color:#4a5568}
+    .iq-tab:hover{border-color:#667eea;color:#667eea}
+    .iq-tab.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-color:transparent}
+    .iq-panel{display:none}
+    .iq-panel.active{display:block}
+    .iq-item{background:#f7fafc;border-radius:10px;padding:16px 18px;margin-bottom:12px;border-left:4px solid #667eea}
+    .iq-item:last-child{margin-bottom:0}
+    .iq-num{font-size:.75rem;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+    .iq-q{font-weight:600;color:#2d3748;font-size:.92rem;line-height:1.5;margin-bottom:8px}
+    .iq-hint{font-size:.82rem;color:#718096;background:#edf2f7;border-radius:6px;padding:7px 10px;line-height:1.5}
+    .iq-hint span{font-weight:600;color:#4a5568}
+    .no-iq{text-align:center;padding:32px;color:#a0aec0;font-size:.92rem}
+    .no-iq .icon{font-size:2rem;margin-bottom:8px}
+
+    /* Profile Links */
+    .profile-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:0}
+    @media(max-width:560px){.profile-cards{grid-template-columns:1fr}}
+    .profile-card{border-radius:12px;padding:18px 20px;border:1.5px solid #e2e8f0;background:#f7fafc}
+    .profile-card.github{border-color:#d1d5db;background:#f6f8fa}
+    .profile-card.linkedin{border-color:#bfdbfe;background:#eff6ff}
+    .profile-card-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .profile-card-icon{font-size:1.5rem}
+    .profile-card-title{font-weight:700;font-size:.95rem;color:#2d3748}
+    .profile-card-url{font-size:.8rem;margin-top:1px}
+    .profile-card-url a{color:#667eea;text-decoration:none;word-break:break-all}
+    .profile-card-url a:hover{text-decoration:underline}
+    .profile-detail{font-size:.82rem;color:#4a5568;padding:4px 0;border-bottom:1px solid #e8e8e8;display:flex;justify-content:space-between;gap:8px}
+    .profile-detail:last-child{border:none}
+    .profile-detail span:first-child{color:#718096;white-space:nowrap}
+    .profile-detail span:last-child{font-weight:600;color:#2d3748;text-align:right}
+    .profile-na{color:#a0aec0;font-size:.85rem;padding:8px 0}
+    .cat-tech{border-left-color:#4299e1}
+    .cat-exp{border-left-color:#48bb78}
+    .cat-proj{border-left-color:#ed8936}
+    .cat-beh{border-left-color:#9f7aea}
+
+    .info-row{display:flex;justify-content:space-between;font-size:.85rem;padding:6px 0;border-bottom:1px solid #f0f0f0}
+    .info-row span:first-child{color:#718096}
+    .info-row span:last-child{font-weight:600;color:#2d3748}
+
+    #spinner{display:none;text-align:center;padding:40px}
+    .spin{width:42px;height:42px;border:4px solid #e2e8f0;border-top-color:#667eea;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .error-box{background:#fff5f5;border:1.5px solid #fc8181;border-radius:10px;padding:16px 18px;color:#9b2c2c;font-size:.88rem;display:none;margin-bottom:16px}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🤖 ResumeAI</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/screen" class="active">Screen</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/portfolio">Portfolio</a>
+      <a href="/about">About</a>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page-header">
+  <h1>🔍 Screen a Candidate</h1>
+  <p>Upload a resume and paste the job description to get an instant AI verdict</p>
+</div>
+
+<div class="container">
+
+  <div class="card">
+    <label>📄 Upload Resume (PDF, DOCX, or TXT)</label>
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept=".pdf,.docx,.txt" onchange="onFileChange(event)"/>
+      <div class="upload-icon">📎</div>
+      <div class="upload-text">Drag & drop or <span>click to browse</span></div>
+      <div class="upload-text" style="color:#a0aec0;font-size:.8rem;margin-top:4px">PDF · DOCX · TXT</div>
+      <div class="file-selected" id="fileName"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>📋 Job Description</label>
+    <textarea id="jdInput" placeholder="Paste the full job description here — requirements, responsibilities, nice-to-haves..."></textarea>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <button class="btn" id="screenBtn" onclick="submitScreen()">🔍 Screen Candidate</button>
+  <a href="/dashboard" id="dashBtn" style="display:none;margin-top:12px;width:100%;padding:13px;background:#fff;border:2px solid #667eea;color:#667eea;border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;text-decoration:none;text-align:center">📊 View Dashboard →</a>
+
+  <div id="spinner">
+    <div class="spin"></div>
+    <p style="color:#718096;font-size:.9rem">Analysing resume with AI...</p>
+  </div>
+
+  <div id="result">
+    <div class="verdict-banner" id="verdictBanner">
+      <div class="verdict-icon" id="verdictIcon"></div>
+      <div>
+        <div class="verdict-title" id="verdictTitle"></div>
+        <div class="verdict-sub" id="verdictSub"></div>
+      </div>
+    </div>
+
+    <div class="score-row">
+      <div class="score-box"><div class="score-num" id="scoreOverall">—</div><div class="score-label">Overall Score</div></div>
+      <div class="score-box"><div class="score-num" id="scoreSkills">—</div><div class="score-label">Skills Score</div></div>
+      <div class="score-box"><div class="score-num" id="scoreProjects">—</div><div class="score-label">Projects Score</div></div>
+      <div class="score-box"><div class="score-num" id="scoreConfidence">—</div><div class="score-label">Confidence</div></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Candidate Overview</div>
+      <div class="info-row"><span>Name</span><span id="infoName">—</span></div>
+      <div class="info-row"><span>Job Role</span><span id="infoRole">—</span></div>
+      <div class="info-row"><span>Education</span><span id="infoEdu">—</span></div>
+      <div class="info-row"><span>Education Status</span><span id="infoEduStatus">—</span></div>
+      <div class="info-row"><span>Experience Required</span><span id="infoExpReq">—</span></div>
+      <div class="info-row"><span>Candidate Experience</span><span id="infoExpCand">—</span></div>
+      <div class="info-row"><span>Experience Status</span><span id="infoExpStatus">—</span></div>
+      <div class="info-row" id="certRow" style="display:none"><span>Certifications</span><span id="infoCerts">—</span></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">✅ Matched Skills</div>
+      <div class="tags" id="matchedSkills"></div>
+      <div class="section-title" style="margin-top:14px">❌ Missing Skills</div>
+      <div class="tags" id="missingSkills"></div>
+      <div id="skillEvidenceWrap" style="margin-top:18px;display:none">
+        <div class="section-title">🔬 Skill Evidence Breakdown</div>
+        <table class="skill-table">
+          <thead><tr><th>Skill</th><th>Type</th><th>Status</th><th>Evidence in Resume</th></tr></thead>
+          <tbody id="skillEvidenceBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="section-title">💪 Strengths</div>
+        <ul class="list-items" id="strengthsList"></ul>
+      </div>
+      <div class="card">
+        <div class="section-title">⚠️ Weaknesses</div>
+        <ul class="list-items" id="weaknessesList"></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🧠 AI Reasoning</div>
+      <div class="reasoning-box" id="reasoning"></div>
+    </div>
+
+    <!-- Profile Links -->
+    <div class="card" id="profileSection" style="display:none">
+      <div class="section-title">🔗 Profile Links</div>
+      <div class="profile-cards">
+        <div class="profile-card github" id="githubCard">
+          <div class="profile-card-header">
+            <span class="profile-card-icon">🐙</span>
+            <div>
+              <div class="profile-card-title">GitHub</div>
+              <div class="profile-card-url" id="githubUrl"></div>
+            </div>
+          </div>
+          <div id="githubDetails"></div>
+        </div>
+        <div class="profile-card linkedin" id="linkedinCard">
+          <div class="profile-card-header">
+            <span class="profile-card-icon">💼</span>
+            <div>
+              <div class="profile-card-title">LinkedIn</div>
+              <div class="profile-card-url" id="linkedinUrl"></div>
+            </div>
+          </div>
+          <div id="linkedinDetails"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interview Questions -->
+    <div class="card" id="iqSection" style="display:none">
+      <div class="iq-header">
+        <h2>🎤 Interview Questions</h2>
+        <span class="badge">AI Generated</span>
+      </div>
+      <div class="iq-tabs">
+        <button class="iq-tab active" onclick="switchTab('technical',this)">💻 Technical</button>
+        <button class="iq-tab" onclick="switchTab('experience',this)">📅 Experience</button>
+        <button class="iq-tab" onclick="switchTab('project',this)">🏗️ Projects</button>
+        <button class="iq-tab" onclick="switchTab('behavioral',this)">🧠 Behavioral</button>
+      </div>
+      <div id="iq-technical" class="iq-panel active"></div>
+      <div id="iq-experience" class="iq-panel"></div>
+      <div id="iq-project" class="iq-panel"></div>
+      <div id="iq-behavioral" class="iq-panel"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  // Use same origin as the page so the UI works regardless of port
+  const API = window.location.origin;
+  let selectedFile = null;
+
+  const ua = document.getElementById('uploadArea');
+  ua.addEventListener('dragover', e=>{e.preventDefault();ua.classList.add('dragover')});
+  ua.addEventListener('dragleave', ()=>ua.classList.remove('dragover'));
+  ua.addEventListener('drop', e=>{e.preventDefault();ua.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)setFile(f)});
+
+  function onFileChange(e){if(e.target.files[0])setFile(e.target.files[0])}
+  function setFile(f){selectedFile=f;document.getElementById('fileName').textContent='✓ '+f.name}
+  function showError(msg){const b=document.getElementById('errorBox');b.textContent='⚠️ '+msg;b.style.display='block'}
+  function hideError(){document.getElementById('errorBox').style.display='none'}
+
+  async function submitScreen(){
+    hideError();
+    const jd=document.getElementById('jdInput').value.trim();
+    if(!selectedFile){showError('Please upload a resume file.');return}
+    if(!jd){showError('Please paste the job description.');return}
+    document.getElementById('screenBtn').disabled=true;
+    document.getElementById('result').style.display='none';
+    document.getElementById('spinner').style.display='block';
+    try{
+      const fd=new FormData();
+      fd.append('resume',selectedFile);
+      fd.append('job_description',jd);
+      const res=await fetch(`${API}/screen`,{method:'POST',body:fd,headers:{Authorization:'Bearer '+getToken()}});
+      const data=await res.json();
+      if(!res.ok){showError(data.detail?.error||data.detail||'Something went wrong.');return}
+      localStorage.setItem('last_screening', JSON.stringify(data));
+      renderResult(data);
+    }catch(e){
+      showError('Could not reach the server. Make sure the API is running on localhost:8000.');
+    }finally{
+      document.getElementById('screenBtn').disabled=false;
+      document.getElementById('spinner').style.display='none';
+    }
+  }
+
+  function switchTab(cat, btn) {
+    document.querySelectorAll('.iq-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.iq-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('iq-' + cat).classList.add('active');
+  }
+
+  const catColors = {technical:'cat-tech', experience:'cat-exp', project:'cat-proj', behavioral:'cat-beh'};
+
+  function renderIQPanel(panelId, questions, colorClass) {
+    const el = document.getElementById(panelId);
+    if (!questions || !questions.length) {
+      el.innerHTML = '<div class="no-iq"><div class="icon">📭</div>No questions in this category.</div>';
+      return;
+    }
+    el.innerHTML = questions.map((q, i) => `
+      <div class="iq-item ${colorClass}">
+        <div class="iq-num">Question ${i + 1}</div>
+        <div class="iq-q">Q: ${q.question}</div>
+        <div class="iq-hint"><span>💡 Hint:</span> ${q.expected_answer_hint}</div>
+      </div>`).join('');
+  }
+
+  function renderResult(d){
+    const rec=d.recommendation.toLowerCase();
+    const banner=document.getElementById('verdictBanner');
+    banner.className='verdict-banner '+rec;
+    document.getElementById('verdictIcon').textContent=rec==='selected'?'✅':rec==='consider'?'🟡':'❌';
+    document.getElementById('verdictTitle').textContent=d.recommendation.toUpperCase()+(d.eligible?' — ELIGIBLE':' — NOT ELIGIBLE');
+    document.getElementById('verdictSub').textContent='Overall match score: '+d.overall_match_score+'/100';
+
+    const conf=d.final_decision.confidence_score;
+    document.getElementById('scoreOverall').textContent=d.overall_match_score+'%';
+    document.getElementById('scoreSkills').textContent=d.technical_skill_match.score+'%';
+    document.getElementById('scoreProjects').textContent=d.projects_relevance_score+'%';
+    document.getElementById('scoreConfidence').textContent=(conf>1?(conf+'%'):(Math.round(conf*100)+'%'));
+
+    document.getElementById('infoName').textContent=d.candidate_name||'—';
+    document.getElementById('infoRole').textContent=d.job_role||'—';
+    document.getElementById('infoEdu').textContent=d.education_analysis.degree||'—';
+    document.getElementById('infoEduStatus').textContent=d.education_analysis.status||'—';
+    document.getElementById('infoExpReq').textContent=d.experience_analysis.required_years||'—';
+    document.getElementById('infoExpCand').textContent=d.experience_analysis.candidate_years||'—';
+    document.getElementById('infoExpStatus').textContent=d.experience_analysis.status||'—';
+    if(d.certifications&&d.certifications.length){
+      document.getElementById('certRow').style.display='flex';
+      document.getElementById('infoCerts').textContent=d.certifications.join(', ');
+    }
+
+    const ms=document.getElementById('matchedSkills');ms.innerHTML='';
+    (d.technical_skill_match.matched_skills||[]).forEach(s=>ms.innerHTML+=`<span class="tag green">${s}</span>`);
+    if(!ms.innerHTML)ms.innerHTML='<span style="color:#a0aec0;font-size:.85rem">None identified</span>';
+
+    const miss=document.getElementById('missingSkills');miss.innerHTML='';
+    (d.technical_skill_match.missing_skills||[]).forEach(s=>miss.innerHTML+=`<span class="tag red">${s}</span>`);
+    if(!miss.innerHTML)miss.innerHTML='<span style="color:#38a169;font-size:.85rem">None — full match!</span>';
+
+    const sl=document.getElementById('strengthsList');sl.innerHTML='';
+    (d.strengths||[]).forEach(s=>sl.innerHTML+=`<li><span>💚</span><span>${s}</span></li>`);
+    if(!sl.innerHTML)sl.innerHTML='<li><span>—</span><span>None noted</span></li>';
+
+    const wl=document.getElementById('weaknessesList');wl.innerHTML='';
+    (d.weaknesses||[]).forEach(w=>wl.innerHTML+=`<li><span>🔴</span><span>${w}</span></li>`);
+    if(!wl.innerHTML)wl.innerHTML='<li><span>—</span><span>None noted</span></li>';
+
+    document.getElementById('reasoning').textContent=d.final_decision.reasoning||'—';
+
+    // Skill evidence table
+    const tsm = d.technical_skill_match;
+    const mandatory = new Set(tsm.mandatory_skills_required||[]);
+    const preferred = new Set(tsm.preferred_skills_required||[]);
+    const details = tsm.skill_details||[];
+    if(details.length){
+      const tbody = document.getElementById('skillEvidenceBody');
+      tbody.innerHTML = details.map(sd=>{
+        const isMandatory = mandatory.has(sd.skill);
+        const isPreferred = preferred.has(sd.skill);
+        const typeBadge = isMandatory
+          ? '<span class="badge-mandatory">Mandatory</span>'
+          : isPreferred ? '<span class="badge-preferred">Preferred</span>' : '';
+        const statusBadge = sd.found_in_resume
+          ? '<span class="badge-found">✓ Found</span>'
+          : '<span class="badge-missing">✗ Missing</span>';
+        const ctx = sd.context && sd.context !== 'not found'
+          ? `<span class="context-text">${sd.context}</span>`
+          : '<span style="color:#cbd5e0">—</span>';
+        return `<tr><td><strong>${sd.skill}</strong></td><td>${typeBadge}</td><td>${statusBadge}</td><td>${ctx}</td></tr>`;
+      }).join('');
+      document.getElementById('skillEvidenceWrap').style.display='block';
+    }
+
+    // Profile Links — always shown regardless of verdict
+    const profileSection = document.getElementById('profileSection');
+    const gh = d.github_analysis;
+    const li = d.linkedin_analysis;
+    const hasGH = gh && (gh.url || (gh.repositories_noted||[]).length || gh.activity_summary);
+    const hasLI = li && (li.url || li.headline || li.current_role || li.profile_summary);
+    if (hasGH || hasLI) {
+      if (hasGH) {
+        document.getElementById('githubCard').style.display = 'block';
+        document.getElementById('githubUrl').innerHTML = gh.url
+          ? `<a href="${gh.url}" target="_blank" rel="noopener">${gh.url}</a>`
+          : '<span style="color:#a0aec0">Not found in resume</span>';
+        const repos = (gh.repositories_noted||[]).join(', ') || '—';
+        const langs = (gh.languages_inferred||[]).join(', ') || '—';
+        document.getElementById('githubDetails').innerHTML =
+          `<div class="profile-detail"><span>Repositories</span><span>${repos}</span></div>` +
+          `<div class="profile-detail"><span>Languages</span><span>${langs}</span></div>` +
+          `<div class="profile-detail"><span>Activity</span><span>${gh.activity_summary||'—'}</span></div>`;
+      } else {
+        document.getElementById('githubCard').style.display = 'none';
+      }
+      if (hasLI) {
+        document.getElementById('linkedinCard').style.display = 'block';
+        document.getElementById('linkedinUrl').innerHTML = li.url
+          ? `<a href="${li.url}" target="_blank" rel="noopener">${li.url}</a>`
+          : '<span style="color:#a0aec0">Not found in resume</span>';
+        const skills    = (li.skills_listed||[]).join(', ') || '—';
+        const companies = (li.companies_noted||[]).join(', ') || '—';
+        document.getElementById('linkedinDetails').innerHTML = [
+          li.headline        ? `<div class="profile-detail"><span>Headline</span><span>${li.headline}</span></div>` : '',
+          li.current_role    ? `<div class="profile-detail"><span>Current Role</span><span>${li.current_role}</span></div>` : '',
+          li.total_experience? `<div class="profile-detail"><span>Experience</span><span>${li.total_experience}</span></div>` : '',
+          companies !== '—'  ? `<div class="profile-detail"><span>Companies</span><span>${companies}</span></div>` : '',
+          skills !== '—'     ? `<div class="profile-detail"><span>Skills Listed</span><span>${skills}</span></div>` : '',
+          li.profile_summary ? `<div class="profile-detail" style="flex-direction:column;gap:4px"><span>Summary</span><span style="text-align:left">${li.profile_summary}</span></div>` : ''
+        ].join('');
+      } else {
+        document.getElementById('linkedinCard').style.display = 'none';
+      }
+      profileSection.style.display = 'block';
+    } else {
+      profileSection.style.display = 'none';
+    }
+
+    // Interview Questions
+    const iqSection = document.getElementById('iqSection');
+    if (d.interview_questions && d.recommendation.toLowerCase() !== 'reject') {
+      const iq = d.interview_questions;
+      renderIQPanel('iq-technical',  iq.technical,  catColors.technical);
+      renderIQPanel('iq-experience', iq.experience, catColors.experience);
+      renderIQPanel('iq-project',    iq.project,    catColors.project);
+      renderIQPanel('iq-behavioral', iq.behavioral, catColors.behavioral);
+      // Reset to first tab
+      document.querySelectorAll('.iq-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.iq-panel').forEach(p=>p.classList.remove('active'));
+      document.querySelector('.iq-tab').classList.add('active');
+      document.getElementById('iq-technical').classList.add('active');
+      iqSection.style.display = 'block';
+    } else {
+      iqSection.style.display = 'none';
+    }
+
+    document.getElementById('result').style.display='block';
+    document.getElementById('result').scrollIntoView({behavior:'smooth'});
+    document.getElementById('dashBtn').style.display='block';
+  }
+</script>
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>

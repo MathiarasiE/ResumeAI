@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Resume Screener</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1a202c}
+
+    /* NAV */
+    nav{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}
+    .nav-inner{max-width:1100px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{font-size:1.25rem;font-weight:800;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links{display:flex;gap:8px}
+    .nav-links a{padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.9rem;color:#4a5568;transition:all .2s}
+    .nav-links a:hover{background:#f0f4f8;color:#2d3748}
+    .nav-links a.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+    .btn-logout{padding:8px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-weight:600;font-size:.85rem;color:#e53e3e;cursor:pointer;transition:all .2s}
+    .btn-logout:hover{background:#fff5f5;border-color:#fc8181}
+
+    /* HERO */
+    .hero{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:100px 24px 80px;text-align:center;color:#fff}
+    .hero h1{font-size:3rem;font-weight:800;line-height:1.2;margin-bottom:20px}
+    .hero h1 span{display:block;font-size:1.1rem;font-weight:400;opacity:.85;margin-bottom:8px;letter-spacing:1px;text-transform:uppercase}
+    .hero p{font-size:1.15rem;opacity:.9;max-width:580px;margin:0 auto 36px;line-height:1.7}
+    .hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+    .btn-white{padding:14px 32px;background:#fff;color:#667eea;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s}
+    .btn-white:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.15)}
+    .btn-outline{padding:14px 32px;background:transparent;color:#fff;border:2px solid rgba(255,255,255,.6);border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s}
+    .btn-outline:hover{background:rgba(255,255,255,.1)}
+
+    /* STATS */
+    .stats{background:#fff;padding:40px 24px;border-bottom:1px solid #e2e8f0}
+    .stats-inner{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:20px;text-align:center}
+    .stat-num{font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .stat-label{font-size:.85rem;color:#718096;margin-top:4px}
+
+    /* FEATURES */
+    .features{padding:80px 24px;max-width:1100px;margin:0 auto}
+    .section-label{text-align:center;font-size:.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#667eea;margin-bottom:12px}
+    .section-title{text-align:center;font-size:2rem;font-weight:800;color:#2d3748;margin-bottom:12px}
+    .section-sub{text-align:center;color:#718096;max-width:500px;margin:0 auto 56px;line-height:1.6}
+    .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+    .feature-card{background:#fff;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.06);transition:transform .2s,box-shadow .2s}
+    .feature-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+    .feature-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin-bottom:20px}
+    .feature-title{font-size:1.1rem;font-weight:700;color:#2d3748;margin-bottom:10px}
+    .feature-desc{color:#718096;font-size:.9rem;line-height:1.7}
+
+    /* HOW IT WORKS */
+    .how{background:#fff;padding:80px 24px}
+    .how-inner{max-width:900px;margin:0 auto}
+    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;margin-top:56px;position:relative}
+    .step{text-align:center}
+    .step-num{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:1.3rem;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+    .step-title{font-weight:700;color:#2d3748;margin-bottom:8px}
+    .step-desc{font-size:.88rem;color:#718096;line-height:1.6}
+
+    /* CTA */
+    .cta{background:linear-gradient(135deg,#667eea,#764ba2);padding:80px 24px;text-align:center;color:#fff}
+    .cta h2{font-size:2.2rem;font-weight:800;margin-bottom:16px}
+    .cta p{opacity:.9;margin-bottom:32px;font-size:1.05rem}
+
+    /* FOOTER */
+    footer{background:#1a202c;color:#a0aec0;text-align:center;padding:28px 24px;font-size:.85rem}
+    footer span{color:#667eea;font-weight:600}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🤖 ResumeAI</a>
+    <div class="nav-links">
+      <a href="/" class="active">Home</a>
+      <a href="/screen">Screen</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/portfolio">Portfolio</a>
+      <a href="/about">About</a>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <h1><span>AI-Powered Recruitment</span>Screen Smarter, Hire Better</h1>
+  <p>Upload a resume and job description — get an instant AI analysis with eligibility verdict, skill match, and detailed insights in seconds.</p>
+  <div class="hero-btns">
+    <a href="/screen" class="btn-white">🔍 Screen a Resume</a>
+    <a href="/about" class="btn-outline">Learn More</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stats-inner">
+    <div><div class="stat-num">95%</div><div class="stat-label">Screening Accuracy</div></div>
+    <div><div class="stat-num">&lt;5s</div><div class="stat-label">Analysis Time</div></div>
+    <div><div class="stat-num">10+</div><div class="stat-label">Evaluation Criteria</div></div>
+    <div><div class="stat-num">PDF/DOCX/TXT</div><div class="stat-label">File Formats Supported</div></div>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="section-label">What We Analyse</div>
+  <h2 class="section-title">Complete Candidate Evaluation</h2>
+  <p class="section-sub">Every resume is evaluated across 10 key dimensions to give you a complete picture.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <div class="feature-title">Technical Skills Match</div>
+      <div class="feature-desc">Compares candidate's tech stack against required and preferred skills with a match percentage score.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📅</div>
+      <div class="feature-title">Experience Evaluation</div>
+      <div class="feature-desc">Extracts total years of relevant experience and checks against minimum requirements.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎓</div>
+      <div class="feature-title">Education Analysis</div>
+      <div class="feature-desc">Verifies degree, specialization, and university against job requirements.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏗️</div>
+      <div class="feature-title">Projects Assessment</div>
+      <div class="feature-desc">Evaluates project relevance, complexity, and technology alignment with the role.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚠️</div>
+      <div class="feature-title">Risk Factor Detection</div>
+      <div class="feature-desc">Flags employment gaps, frequent job changes, missing mandatory skills, and overqualification.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">ATS Compatibility</div>
+      <div class="feature-desc">Scores the resume out of 100 using weighted criteria matching industry ATS standards.</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how">
+  <div class="how-inner">
+    <div class="section-label">Simple Process</div>
+    <h2 class="section-title" style="text-align:center">How It Works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-title">Upload Resume</div>
+        <div class="step-desc">Upload the candidate's resume in PDF, DOCX, or TXT format.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-title">Paste Job Description</div>
+        <div class="step-desc">Paste the full job description with requirements and responsibilities.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-title">AI Analyses</div>
+        <div class="step-desc">LLaMA 3.3 70B evaluates the resume across 10 dimensions in under 5 seconds.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-title">Get Verdict</div>
+        <div class="step-desc">Receive a clear Selected / Consider / Reject decision with full reasoning.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2>Ready to Screen Smarter?</h2>
+  <p>Upload your first resume and see the results in seconds — completely free.</p>
+  <a href="/screen" class="btn-white">Get Started →</a>
+</section>
+
+<footer>
+  <p>Built with ❤️ using <span>FastAPI</span> + <span>Groq (LLaMA 3.3 70B)</span> + <span>Python</span></p>
+</footer>
+
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — AI Resume Screener</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1a202c}
+
+    nav{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}
+    .nav-inner{max-width:1200px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between}
+    .nav-logo{font-size:1.25rem;font-weight:800;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-decoration:none}
+    .nav-links{display:flex;gap:8px}
+    .nav-links a{padding:8px 18px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.9rem;color:#4a5568;transition:all .2s}
+    .nav-links a:hover{background:#f0f4f8;color:#2d3748}
+    .nav-links a.active{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+    .btn-logout{padding:8px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-weight:600;font-size:.85rem;color:#e53e3e;cursor:pointer;transition:all .2s}
+    .btn-logout:hover{background:#fff5f5;border-color:#fc8181}
+
+    .page-header{background:linear-gradient(135deg,#667eea,#764ba2);padding:40px 24px 36px;text-align:center;color:#fff}
+    .page-header h1{font-size:2rem;font-weight:800;margin-bottom:6px}
+    .page-header p{opacity:.85;font-size:.95rem}
+    .candidate-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.15);border-radius:30px;padding:8px 20px;margin-top:14px;font-size:.9rem}
+    .candidate-badge .verdict{font-weight:700;padding:3px 12px;border-radius:12px;font-size:.8rem}
+    .verdict-selected{background:#68d391;color:#1a202c}
+    .verdict-consider{background:#f6e05e;color:#1a202c}
+    .verdict-reject{background:#fc8181;color:#1a202c}
+
+    .container{max-width:1200px;margin:0 auto;padding:28px 16px}
+
+    .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px}
+    .kpi{background:#fff;border-radius:12px;padding:18px 16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.06);border-top:4px solid #667eea}
+    .kpi.green{border-top-color:#48bb78}
+    .kpi.orange{border-top-color:#ed8936}
+    .kpi.purple{border-top-color:#9f7aea}
+    .kpi.red{border-top-color:#fc8181}
+    .kpi-val{font-size:2rem;font-weight:800;color:#2d3748}
+    .kpi-label{font-size:.72rem;color:#718096;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px}
+    @media(max-width:900px){.grid-3{grid-template-columns:1fr 1fr}}
+    @media(max-width:600px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+    .card{background:#fff;border-radius:14px;padding:22px 24px;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+    .card-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#a0aec0;margin-bottom:16px;display:flex;align-items:center;gap:6px}
+    .chart-wrap{position:relative;width:100%}
+    .chart-wrap.sm{height:220px}
+    .chart-wrap.md{height:260px}
+    .chart-wrap.lg{height:300px}
+
+    /* Skill tags */
+    .tag-list{display:flex;flex-wrap:wrap;gap:8px}
+    .tag{padding:5px 13px;border-radius:20px;font-size:.78rem;font-weight:600}
+    .tag.green{background:#c6f6d5;color:#276749}
+    .tag.red{background:#fed7d7;color:#9b2c2c}
+    .tag.blue{background:#bee3f8;color:#2c5282}
+    .tag.orange{background:#feebc8;color:#744210}
+    .tag.purple{background:#e9d8fd;color:#553c9a}
+    .skill-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:8px}
+    .skill-table th{background:#f7fafc;color:#718096;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:7px 10px;text-align:left;border-bottom:2px solid #e2e8f0;font-size:.7rem}
+    .skill-table td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top;color:#4a5568}
+    .skill-table tr:last-child td{border:none}
+    .skill-table tr:hover td{background:#fafafa}
+    .badge-found{display:inline-block;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;background:#c6f6d5;color:#276749}
+    .badge-missing{display:inline-block;padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;background:#fed7d7;color:#9b2c2c}
+    .badge-mandatory{display:inline-block;padding:2px 7px;border-radius:8px;font-size:.67rem;font-weight:700;background:#feebc8;color:#744210;margin-left:4px}
+    .badge-preferred{display:inline-block;padding:2px 7px;border-radius:8px;font-size:.67rem;font-weight:700;background:#e9d8fd;color:#553c9a;margin-left:4px}
+
+    /* Experience timeline */
+    .timeline{margin-top:4px}
+    .tl-item{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+    .tl-item:last-child{border:none}
+    .tl-dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);margin-top:5px;flex-shrink:0}
+    .tl-body{flex:1}
+    .tl-label{font-size:.82rem;font-weight:700;color:#2d3748}
+    .tl-val{font-size:.78rem;color:#718096;margin-top:2px}
+
+    /* Strengths / weaknesses */
+    .sw-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f7f7f7;font-size:.84rem;color:#4a5568;line-height:1.45}
+    .sw-item:last-child{border:none}
+
+    /* Profile chips */
+    .profile-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:600;text-decoration:none;margin:4px}
+    .chip-gh{background:#f6f8fa;border:1.5px solid #d1d5db;color:#24292e}
+    .chip-li{background:#eff6ff;border:1.5px solid #bfdbfe;color:#1d4ed8}
+
+    /* LinkedIn details */
+    .li-detail{font-size:.82rem;padding:5px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;gap:8px;color:#4a5568}
+    .li-detail:last-child{border:none}
+    .li-detail span:first-child{color:#718096;white-space:nowrap}
+    .li-detail span:last-child{font-weight:600;color:#2d3748;text-align:right}
+
+    .no-data{text-align:center;padding:40px 20px;color:#a0aec0}
+    .no-data .icon{font-size:2.5rem;margin-bottom:10px}
+    .no-data p{font-size:.9rem}
+    .no-data a{color:#667eea;font-weight:600;text-decoration:none}
+
+    .progress-bar-wrap{margin:6px 0}
+    .pb-label{display:flex;justify-content:space-between;font-size:.78rem;color:#4a5568;margin-bottom:4px}
+    .pb-track{background:#e2e8f0;border-radius:20px;height:8px;overflow:hidden}
+    .pb-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,#667eea,#764ba2);transition:width .6s ease}
+    .pb-fill.green{background:linear-gradient(90deg,#48bb78,#38a169)}
+    .pb-fill.orange{background:linear-gradient(90deg,#ed8936,#dd6b20)}
+    .pb-fill.red{background:linear-gradient(90deg,#fc8181,#e53e3e)}
+
+    footer{background:#1a202c;color:#a0aec0;text-align:center;padding:24px;font-size:.85rem;margin-top:32px}
+    footer span{color:#667eea;font-weight:600}
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🤖 ResumeAI</a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/screen">Screen</a>
+      <a href="/dashboard" class="active">Dashboard</a>
+      <a href="/portfolio">Portfolio</a>
+      <a href="/about">About</a>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<div id="noDataView" style="display:none">
+  <div class="page-header"><h1>📊 Candidate Dashboard</h1><p>Visual analytics for the screened candidate</p></div>
+  <div class="container">
+    <div class="no-data">
+      <div class="icon">📭</div>
+      <p>No screening data found.<br>Screen a candidate first to see the dashboard.</p><br>
+      <a href="/screen">→ Go to Screen</a>
+    </div>
+  </div>
+</div>
+
+<div id="dashView" style="display:none">
+  <div class="page-header">
+    <h1>📊 Candidate Dashboard</h1>
+    <p>Visual analytics for the screened candidate</p>
+    <div class="candidate-badge">
+      <span id="hdrName">—</span>
+      <span>·</span>
+      <span id="hdrRole">—</span>
+      <span class="verdict" id="hdrVerdict">—</span>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-val" id="kpiOverall">—</div><div class="kpi-label">Overall Score</div></div>
+      <div class="kpi green"><div class="kpi-val" id="kpiSkills">—</div><div class="kpi-label">Skills Score</div></div>
+      <div class="kpi orange"><div class="kpi-val" id="kpiProjects">—</div><div class="kpi-label">Projects Score</div></div>
+      <div class="kpi purple"><div class="kpi-val" id="kpiConfidence">—</div><div class="kpi-label">Confidence</div></div>
+      <div class="kpi red"><div class="kpi-val" id="kpiMissing">—</div><div class="kpi-label">Missing Skills</div></div>
+    </div>
+
+    <!-- Row 1: Radar + Score Breakdown -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">🕸️ Skill Radar</div>
+        <div class="chart-wrap md"><canvas id="radarChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Score Breakdown</div>
+        <div id="scoreBreakdown"></div>
+      </div>
+    </div>
+
+    <!-- Row 2: Matched / Missing skills + Doughnut -->
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">✅ Matched Skills</div>
+        <div class="tag-list" id="matchedTags"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">❌ Missing Skills</div>
+        <div class="tag-list" id="missingTags"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🍩 Skills Coverage</div>
+        <div class="chart-wrap sm"><canvas id="doughnutChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Row 3: Experience + Education/Certs -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">📅 Experience Analysis</div>
+        <div class="timeline" id="expTimeline"></div>
+        <div style="margin-top:18px">
+          <div class="chart-wrap sm"><canvas id="expBarChart"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🎓 Education &amp; Certifications</div>
+        <div class="timeline" id="eduTimeline"></div>
+        <div style="margin-top:16px">
+          <div class="card-title">🏅 Certifications</div>
+          <div class="tag-list" id="certTags"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 4: Projects bar + Strengths & Weaknesses -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">🏗️ Projects &amp; GitHub</div>
+        <div class="chart-wrap md"><canvas id="projectsChart"></canvas></div>
+        <div id="githubInfo" style="margin-top:14px"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">💪 Strengths &amp; ⚠️ Weaknesses</div>
+        <div id="swList"></div>
+      </div>
+    </div>
+
+    <!-- Row 5: LinkedIn analysis -->
+    <div class="card" id="linkedinCard" style="display:none;margin-bottom:20px">
+      <div class="card-title">💼 LinkedIn Profile Analysis</div>
+      <div class="grid-2" style="gap:20px">
+        <div id="liDetails"></div>
+        <div>
+          <div class="card-title" style="margin-bottom:10px">🛠️ Skills on LinkedIn</div>
+          <div class="tag-list" id="liSkillTags"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 6: AI Reasoning -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">🔬 Skill Evidence Breakdown</div>
+      <table class="skill-table" id="skillEvidenceTable" style="display:none">
+        <thead><tr><th>Skill</th><th>Type</th><th>Status</th><th>Evidence in Resume</th></tr></thead>
+        <tbody id="skillEvidenceBody"></tbody>
+      </table>
+      <div id="skillEvidenceEmpty" style="color:#a0aec0;font-size:.85rem;padding:8px 0">No skill details available.</div>
+    </div>
+
+    <!-- Row 7: AI Reasoning -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">🧠 AI Reasoning</div>
+      <div style="background:#ebf8ff;border-left:4px solid #63b3ed;border-radius:6px;padding:14px 16px;font-size:.88rem;line-height:1.7;color:#2c5282" id="reasoning"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer><p>Built with ❤️ using <span>FastAPI</span> + <span>Groq (LLaMA 3.3 70B)</span> + <span>Python</span></p></footer>
+
+<script>
+const GRAD = ['#667eea','#764ba2','#f093fb','#4facfe','#43e97b','#fa709a','#fee140','#a18cd1'];
+
+function pct(v){ return (v > 1 ? v : Math.round(v * 100)) + '%'; }
+
+function progressBar(label, value, max, colorClass=''){
+  const pct = Math.round((value/max)*100);
+  return `<div class="progress-bar-wrap">
+    <div class="pb-label"><span>${label}</span><span>${value}/${max}</span></div>
+    <div class="pb-track"><div class="pb-fill ${colorClass}" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+function renderDashboard(d){
+  // Header
+  document.getElementById('hdrName').textContent = d.candidate_name || '—';
+  document.getElementById('hdrRole').textContent = d.job_role || '—';
+  const vEl = document.getElementById('hdrVerdict');
+  vEl.textContent = d.recommendation;
+  vEl.className = 'verdict verdict-' + d.recommendation.toLowerCase();
+
+  // KPIs
+  const conf = d.final_decision.confidence_score;
+  document.getElementById('kpiOverall').textContent    = d.overall_match_score + '%';
+  document.getElementById('kpiSkills').textContent     = d.technical_skill_match.score + '%';
+  document.getElementById('kpiProjects').textContent   = d.projects_relevance_score + '%';
+  document.getElementById('kpiConfidence').textContent = pct(conf);
+  document.getElementById('kpiMissing').textContent    = (d.technical_skill_match.missing_skills||[]).length;
+
+  // ── Radar Chart ──
+  const radarLabels = ['Skills','Experience','Projects','Education','Certifications','Confidence'];
+  const expScore = d.experience_analysis.status === 'Met' ? 80 : d.experience_analysis.status === 'Exceeded' ? 100 : 40;
+  const eduScore = d.education_analysis.status === 'Met' ? 80 : d.education_analysis.status === 'Exceeded' ? 100 : 40;
+  const certScore = Math.min((d.certifications||[]).length * 20, 100);
+  const confScore = conf > 1 ? conf : Math.round(conf * 100);
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: {
+      labels: radarLabels,
+      datasets:[{
+        label:'Candidate',
+        data:[d.technical_skill_match.score, expScore, d.projects_relevance_score, eduScore, certScore, confScore],
+        backgroundColor:'rgba(102,126,234,.15)',
+        borderColor:'#667eea',
+        pointBackgroundColor:'#764ba2',
+        pointRadius:4,
+        borderWidth:2
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{r:{min:0,max:100,ticks:{display:false},grid:{color:'#e2e8f0'},pointLabels:{font:{size:11},color:'#4a5568'}}}}
+  });
+
+  // ── Score Breakdown bars ──
+  const breakdown = [
+    {label:'Technical Skills', val: d.technical_skill_match.score, max:100, cls:''},
+    {label:'Projects',         val: d.projects_relevance_score,    max:100, cls:'orange'},
+    {label:'Experience',       val: expScore,                       max:100, cls:'green'},
+    {label:'Education',        val: eduScore,                       max:100, cls:'purple'},
+    {label:'Overall',          val: d.overall_match_score,          max:100, cls:''}
+  ];
+  document.getElementById('scoreBreakdown').innerHTML = breakdown.map(b=>progressBar(b.label, b.val, b.max, b.cls)).join('');
+
+  // ── Matched / Missing skill tags ──
+  const mt = document.getElementById('matchedTags');
+  (d.technical_skill_match.matched_skills||[]).forEach(s=>mt.innerHTML+=`<span class="tag green">${s}</span>`);
+  if(!mt.innerHTML) mt.innerHTML='<span style="color:#a0aec0;font-size:.83rem">None identified</span>';
+
+  const ms = document.getElementById('missingTags');
+  (d.technical_skill_match.missing_skills||[]).forEach(s=>ms.innerHTML+=`<span class="tag red">${s}</span>`);
+  if(!ms.innerHTML) ms.innerHTML='<span style="color:#38a169;font-size:.83rem">✅ Full match!</span>';
+
+  // ── Doughnut: skills coverage ──
+  const matched = (d.technical_skill_match.matched_skills||[]).length;
+  const missing = (d.technical_skill_match.missing_skills||[]).length;
+  new Chart(document.getElementById('doughnutChart'),{
+    type:'doughnut',
+    data:{labels:['Matched','Missing'],datasets:[{data:[matched||1, missing],backgroundColor:['#48bb78','#fc8181'],borderWidth:0,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}}}}
+  });
+
+  // ── Experience timeline ──
+  const ea = d.experience_analysis;
+  document.getElementById('expTimeline').innerHTML = [
+    `<div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><div class="tl-label">Required</div><div class="tl-val">${ea.required_years||'—'}</div></div></div>`,
+    `<div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><div class="tl-label">Candidate Has</div><div class="tl-val">${ea.candidate_years||'—'}</div></div></div>`,
+    `<div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><div class="tl-label">Status</div><div class="tl-val">${ea.status||'—'}</div></div></div>`
+  ].join('');
+
+  // ── Experience bar chart ──
+  const reqYrs  = parseFloat((ea.required_years||'0').replace(/[^\d.]/g,''))||0;
+  const candYrs = parseFloat((ea.candidate_years||'0').replace(/[^\d.]/g,''))||0;
+  new Chart(document.getElementById('expBarChart'),{
+    type:'bar',
+    data:{
+      labels:['Required Years','Candidate Years'],
+      datasets:[{data:[reqYrs, candYrs],backgroundColor:['#a0aec0','#667eea'],borderRadius:8,borderSkipped:false}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f0f0f0'},ticks:{font:{size:11}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}
+  });
+
+  // ── Education & certs ──
+  const edu = d.education_analysis;
+  document.getElementById('eduTimeline').innerHTML = [
+    `<div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><div class="tl-label">Degree</div><div class="tl-val">${edu.degree||'—'}</div></div></div>`,
+    `<div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><div class="tl-label">Status</div><div class="tl-val">${edu.status||'—'}</div></div></div>`
+  ].join('');
+
+  const ct = document.getElementById('certTags');
+  (d.certifications||[]).forEach(c=>ct.innerHTML+=`<span class="tag blue">${c}</span>`);
+  if(!ct.innerHTML) ct.innerHTML='<span style="color:#a0aec0;font-size:.83rem">None listed</span>';
+
+  // ── Projects chart + GitHub ──
+  const gh = d.github_analysis;
+  const projectLabels = ['Projects Score', 'Skills Score', 'Overall Score'];
+  const projectData   = [d.projects_relevance_score, d.technical_skill_match.score, d.overall_match_score];
+  if(gh && (gh.repositories_noted||[]).length){
+    gh.repositories_noted.slice(0,4).forEach(r=>{ projectLabels.push(r); projectData.push(null); });
+  }
+  new Chart(document.getElementById('projectsChart'),{
+    type:'bar',
+    data:{
+      labels: projectLabels,
+      datasets:[{
+        label:'Score',
+        data: projectData,
+        backgroundColor: projectLabels.map((_,i)=>GRAD[i%GRAD.length]+'cc'),
+        borderRadius:8,
+        borderSkipped:false
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,max:100,grid:{color:'#f0f0f0'},ticks:{font:{size:11}}},y:{grid:{display:false},ticks:{font:{size:11}}}}
+    }
+  });
+
+  if(gh && (gh.url || (gh.repositories_noted||[]).length || gh.activity_summary)){
+    const langs = (gh.languages_inferred||[]).join(', ')||'—';
+    const repos  = (gh.repositories_noted||[]).join(', ')||'—';
+    const ghUrl  = gh.url ? `<a href="${gh.url}" target="_blank" class="profile-chip chip-gh">🐙 ${gh.url}</a>` : '<span style="color:#a0aec0;font-size:.8rem">No URL found in resume</span>';
+    document.getElementById('githubInfo').innerHTML = `
+      <div style="margin-top:4px">${ghUrl}</div>
+      <div class="tl-item" style="margin-top:8px"><div class="tl-dot"></div><div class="tl-body"><div class="tl-label">Languages</div><div class="tl-val">${langs}</div></div></div>
+      <div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><div class="tl-label">Repos Noted</div><div class="tl-val">${repos}</div></div></div>
+      <div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><div class="tl-label">Activity</div><div class="tl-val">${gh.activity_summary||'—'}</div></div></div>`;
+  }
+
+  // ── Strengths & Weaknesses ──
+  const sw = document.getElementById('swList');
+  const strengths  = d.strengths||[];
+  const weaknesses = d.weaknesses||[];
+  const max2 = Math.max(strengths.length, weaknesses.length);
+  let swHtml = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
+    <div style="font-size:.75rem;font-weight:700;color:#48bb78;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Strengths</div>
+    <div style="font-size:.75rem;font-weight:700;color:#e53e3e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Weaknesses</div>`;
+  for(let i=0;i<max2;i++){
+    swHtml += `<div class="sw-item">${strengths[i]?`<span>💚</span><span>${strengths[i]}</span>`:''}</div>`;
+    swHtml += `<div class="sw-item">${weaknesses[i]?`<span>🔴</span><span>${weaknesses[i]}</span>`:''}</div>`;
+  }
+  swHtml += '</div>';
+  sw.innerHTML = swHtml;
+
+  // ── LinkedIn analysis — always shown regardless of verdict ──
+  const li = d.linkedin_analysis;
+  if(li && (li.url || li.headline || li.current_role || li.profile_summary)){
+    const liCard = document.getElementById('linkedinCard');
+    liCard.style.display = 'block';
+    const liUrlHtml = li.url
+      ? `<a href="${li.url}" target="_blank" style="color:#667eea">${li.url}</a>`
+      : '<span style="color:#a0aec0">No URL found in resume</span>';
+    const fields = [
+      ['Profile URL',      liUrlHtml],
+      ['Headline',         li.headline||null],
+      ['Current Role',     li.current_role||null],
+      ['Total Experience', li.total_experience||null],
+      ['Companies',        (li.companies_noted||[]).join(', ')||null],
+      ['Summary',          li.profile_summary||null]
+    ];
+    document.getElementById('liDetails').innerHTML = fields
+      .filter(f=>f[1])
+      .map(f=>`<div class="li-detail"><span>${f[0]}</span><span>${f[1]}</span></div>`)
+      .join('');
+    const lst = document.getElementById('liSkillTags');
+    (li.skills_listed||[]).forEach(s=>lst.innerHTML+=`<span class="tag purple">${s}</span>`);
+    if(!lst.innerHTML) lst.innerHTML='<span style="color:#a0aec0;font-size:.83rem">None listed</span>';
+  }
+
+  // ── AI Reasoning ──
+  document.getElementById('reasoning').textContent = d.final_decision.reasoning||'—';
+
+  // ── Skill Evidence Table ──
+  const tsm = d.technical_skill_match;
+  const mandatory = new Set(tsm.mandatory_skills_required||[]);
+  const preferred = new Set(tsm.preferred_skills_required||[]);
+  const details = tsm.skill_details||[];
+  if(details.length){
+    const tbody = document.getElementById('skillEvidenceBody');
+    tbody.innerHTML = details.map(sd=>{
+      const isMand = mandatory.has(sd.skill);
+      const isPref = preferred.has(sd.skill);
+      const typeBadge = isMand
+        ? '<span class="badge-mandatory">Mandatory</span>'
+        : isPref ? '<span class="badge-preferred">Preferred</span>' : '';
+      const statusBadge = sd.found_in_resume
+        ? '<span class="badge-found">✓ Found</span>'
+        : '<span class="badge-missing">✗ Missing</span>';
+      const ctx = sd.context && sd.context !== 'not found'
+        ? `<span style="color:#718096;font-style:italic">${sd.context}</span>`
+        : '<span style="color:#cbd5e0">—</span>';
+      return `<tr><td><strong>${sd.skill}</strong></td><td>${typeBadge}</td><td>${statusBadge}</td><td>${ctx}</td></tr>`;
+    }).join('');
+    document.getElementById('skillEvidenceTable').style.display = 'table';
+    document.getElementById('skillEvidenceEmpty').style.display = 'none';
+  }
+}
+
+(function init(){
+  const raw = localStorage.getItem('last_screening');
+  if(!raw){
+    document.getElementById('noDataView').style.display='block';
+    return;
+  }
+  try{
+    const data = JSON.parse(raw);
+    document.getElementById('dashView').style.display='block';
+    renderDashboard(data);
+  }catch{
+    document.getElementById('noDataView').style.display='block';
+  }
+})();
+</script>
+<script src="/static/auth-guard.js"></script>
+</body>
+</html>
